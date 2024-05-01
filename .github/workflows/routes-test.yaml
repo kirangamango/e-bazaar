@@ -13,5 +13,11 @@ jobs:
   check-routes:
     runs-on: ubuntu-latest
     steps:
+      - user: actions/checkout@v2
+        name: "Checkout repository"
+
+      - name: "Install dependencies"
+        run: "npm i"
+
       - name: "Run tests"
         run: "npm run test"
