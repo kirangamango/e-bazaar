@@ -1,0 +1,586 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MANUFACTURER
+  RETAILER
+  SUPER_ADMIN
+  DISTRIBUTOR
+  COMPANY_REPRESENTATIVE
+}
+
+type FcmToken {
+  web     String?
+  android String?
+  ios     String?
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum AddressType {
+  HOME
+  HEADQUARTER
+  OFFICE
+  OTHER
+}
+
+enum OrderStatus {
+  RECEIVED
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+  PENDING
+  FAILED
+}
+
+enum PaymentType {
+  COD
+  ONLINE
+  PAY_LATER
+}
+
+enum PaymentStatus {
+  PAID
+  FAILED
+  PENDING
+}
+
+enum Attributes {
+  SIZE
+  MEASURE_TYPE
+  COLOR
+}
+
+model User {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String    @unique
+  name         String
+  email        String
+  password     String?
+  avatar       String?
+  avatarPath   String?
+  fcmToken     FcmToken?
+  role         Role
+  gender       Gender?
+  phone        String?
+  companyName  String?
+  businessName String?
+  businessType String?
+  otp          Int?
+  otpExpiry    DateTime?
+  dob          DateTime?
+  empId        String?
+  status       Boolean   @default(true)
+
+  gst             Gst?    @relation(fields: [gstId], references: [id])
+  gstId           String? @db.ObjectId
+  aadharNo        String?
+  aadharFrontPath String?
+  aadharFrontUrl  String?
+  aadharBackPath  String?
+  aadharBackUrl   String?
+
+  wallet Wallet?
+
+  assignedManufacturer   User?   @relation("assigned manufacturer", fields: [assignedManufacturerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedManufacturerId String? @db.ObjectId
+
+  Addresses             Address[]
+  Orders                Order[]
+  OrdersUnderMe         Order[]                 @relation("orders under me")
+  CartItems             Cart[]
+  WishList              WishList[]
+  Notification          Notification[]
+  Commission            Commission[]            @relation("manfacturer commission")
+  CommissionDistributor CommissionDistributor[] @relation("distributor commission")
+  Categories            Category[]              @relation("manufacturer categories", fields: [categoriesIds], references: [id])
+  categoriesIds         String[]                @db.ObjectId
+  Reviews               Review[]
+  AssignedArea          Address[]               @relation("assigned area")
+  ManagedProducts       Product[]
+
+  // Checkout     Checkout[]
+  Support                 Support[]
+  CompanyRep              User[]    @relation("assigned manufacturer")
+  // Distributors      DistributorManufacturer[] @relation("distributors")
+  ManagedManufacturers    User[]    @relation("manufacturers_distributors", fields: [managedManufacturersIds], references: [id])
+  managedManufacturersIds String[]  @db.ObjectId
+  DistributorsOnMe        User[]    @relation("manufacturers_distributors", fields: [distributorsOnMeIds], references: [id])
+  distributorsOnMeIds     String[]  @db.ObjectId
+  DistributorOrders       Order[]   @relation("assigned distributor")
+  CompanyRepOrders        Order[]   @relation("assigned company rep.")
+  Banner                  Banner[]  @relation("banner")
+
+  isBlocked  Boolean   @default(false)
+  isVerified Boolean   @default(false)
+  lastLogin  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("USERS")
+}
+
+// model DistributorManufacturer {
+//   id String @id @default(auto()) @map("_id") @db.ObjectId
+
+//   distributor    User?   @relation("distributors", fields: [distributorId], references: [id])
+//   distributorId  String? @db.ObjectId
+//   manufacturer   User?   @relation("manufacturers", fields: [manufacturerId], references: [id])
+//   manufacturerId String? @db.ObjectId
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@map("DISTRIBUTORS_TO_MANUFACTURERS")
+// }
+
+model Gst {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  gstNo       String
+  gstFilePath String?
+  gstFileUrl  String?
+
+  user      User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("GST")
+}
+
+// model Aadhar {
+//   id             String  @id @default(auto()) @map("_id") @db.ObjectId
+//   aadharNo       String
+//   aadharFilePath String?
+//   aadharFileUrl  String?
+
+//   user      User[]   @relation("aadhar front")
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@map("AADHAR")
+// }
+
+// model AadharBack {
+//   id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+//   aadharNo           String
+//   aadharBackFilePath String?
+//   aadharBackFileUrl  String?
+
+//   user      User[]   @relation("aadhar back")
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@map("AADHAR_BACK")
+// }
+
+model Address {
+  id             String      @id @default(auto()) @map("_id") @db.ObjectId
+  type           AddressType @default(OTHER)
+  name           String?
+  phone          String?
+  zip            String?
+  city           String?
+  district       String?
+  state          String?
+  country        String?
+  addressLineOne String?
+  addressLineTwo String?
+  landmark       String?
+  isDefault      Boolean     @default(false)
+  status         Boolean     @default(true)
+
+  customer       User?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId     String? @db.ObjectId
+  assignedUser   User?   @relation("assigned area", fields: [assignedUserId], references: [id])
+  assignedUserId String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // orders         Order[]
+  // paymentMethod  PaymentMethod[]
+  Order     Order[]
+  // Checkout       Checkout[]
+
+  @@map("ADDRESSES")
+}
+
+model Category {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  title        String
+  slug         String
+  attributes   Attributes[]
+  description  String?
+  imageUrl     String?      @default("https://via.placeholder.com/300x280")
+  imagePath    String?      @default("https://via.placeholder.com/300x280")
+  icon         String?
+  isFeatured   Boolean      @default(false)
+  isPublished  Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  metaTitle    String?
+  metaDesc     String?
+  metaKeywords String?
+  status       Boolean      @default(true)
+
+  user             User[]    @relation("manufacturer categories", fields: [userIds], references: [id])
+  userIds          String[]  @db.ObjectId
+  parentCategory   Category? @relation("parent category", fields: [parentCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parentCategoryId String?   @db.ObjectId
+
+  Products            Product[]  @relation("ProductCategory")
+  Categories          Category[] @relation("parent category")
+  SubcategoryProducts Product[]  @relation("subcategory")
+
+  @@map("CATEGORIES")
+}
+
+model Product {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  title           String?
+  slug            String?
+  imageUrl        String? @default("https://via.placeholder.com/300x280")
+  imagePath       String? @default("https://via.placeholder.com/300x280")
+  description     String?
+  measureType     String?
+  measureUnit     String?
+  color           String?
+  colorHex        String?
+  size            String?
+  regularPrice    Float?
+  salePrice       Float?
+  discount        Float?
+  stock           Int?
+  isParentProduct Boolean @default(false)
+  ratingAvg       Float?  @default(0)
+  reviewCount     Int?    @default(0)
+  status          Boolean @default(true)
+
+  parentProduct   Product?   @relation("parent product", fields: [parentProductId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parentProductId String?    @db.ObjectId
+  category        Category?  @relation("ProductCategory", fields: [categoryId], references: [id])
+  categoryId      String?    @db.ObjectId
+  subcategory     Category?  @relation("subcategory", fields: [subcategoryId], references: [id])
+  subcategoryId   String?    @db.ObjectId
+  manufacturer    User?      @relation(fields: [manufacturerId], references: [id])
+  manufacturerId  String?    @db.ObjectId
+  cashPoint       CashPoint?
+  allImages       Image[]
+
+  ProductsInCart CartProduct[]
+  Products       Product[]     @relation("parent product")
+  OrderItem      OrderItem[]
+  WishList       WishList[]    @relation("wishlist", fields: [wishListIds], references: [id])
+  wishListIds    String[]      @db.ObjectId
+  Reviews        Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("PRODUCTS")
+}
+
+model Image {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  imagePath String?
+  imageUrl  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String?  @db.ObjectId
+
+  @@map("IMAGES")
+}
+
+model CashPoint {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  measureUnitQty Float
+  cashPoints     Float
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId      String   @unique @db.ObjectId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("CASH_POINTS")
+}
+
+model Review {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating        Int?     @default(0)
+  comment       String?
+  isPublished   Boolean  @default(false)
+  isHighlighted Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  customer      User     @relation(fields: [customerId], references: [id])
+  customerId    String   @db.ObjectId
+  product       Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId     String?  @db.ObjectId
+
+  @@map("REVIEWS")
+}
+
+model CartProduct {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  quantity  Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @db.ObjectId
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("CART_PRODUCTS")
+}
+
+model Cart {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  totalQuantity Int      @default(0)
+  customer      User?    @relation(fields: [customerId], references: [id])
+  customerId    String?  @db.ObjectId
+  status        Boolean?
+
+  CartsInProduct CartProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // Checkout  Checkout[]
+
+  @@map("CART")
+}
+
+model WishList {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  customer   User?    @relation(fields: [customerId], references: [id])
+  customerId String?  @db.ObjectId
+
+  Products   Product[] @relation("wishlist", fields: [productIds], references: [id])
+  productIds String[]  @db.ObjectId
+
+  @@map("WISHLIST")
+}
+
+model Order {
+  id                    String      @id @default(auto()) @map("_id") @db.ObjectId
+  orderId               String      @unique
+  paymentGatewayOrderId String?
+  total                 Float?
+  platformRevenue       Float?      @default(0)
+  manufacturerRevenue   Float?      @default(0)
+  distributorRevenue    Float?      @default(0)
+  // deliveryCharge    Float?      @default(0)
+  paymentMethod         PaymentType @default(COD)
+  paymentResponse       Json?
+  status                OrderStatus @default(PENDING)
+  activeStatus          Boolean     @default(true)
+  isAssigned            Boolean     @default(false)
+  deliveredDate         DateTime?
+  // coupon            Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  // couponId          String?         @db.ObjectId
+  // couponCopy        COUPON_COPY?
+  // returnRequest     returnRequest[]
+  // needSupport       NeedSupport[]
+
+  customer          User    @relation(fields: [customerId], references: [id])
+  customerId        String  @db.ObjectId
+  deliveryAddress   Address @relation(fields: [deliveryAddressId], references: [id])
+  deliveryAddressId String  @db.ObjectId
+  distributor       User?   @relation("assigned distributor", fields: [distributorId], references: [id])
+  distributorId     String? @db.ObjectId
+  companyRep        User?   @relation("assigned company rep.", fields: [companyRepId], references: [id])
+  companyRepId      String? @db.ObjectId
+  manufacturer      User?   @relation("orders under me", fields: [manufacturerId], references: [id])
+  manufacturerId    String? @db.ObjectId
+
+  Payment Payment?
+  Invoice Invoice?
+
+  OrderedItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ORDERS")
+}
+
+model OrderItem {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  quantity Int    @default(1)
+  price    Float
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String  @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id])
+  productId String  @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ORDER_ITEMS")
+}
+
+model Payment {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  amount          Float
+  status          PaymentStatus @default(PENDING)
+  currency        String
+  paymentResponse Json?
+  // paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+  // paymentMethodId String   @db.ObjectId
+  Order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId         String        @unique @db.ObjectId
+  createdAt       DateTime      @default(now())
+  updateAt        DateTime      @updatedAt
+
+  @@map("PAYMENT")
+}
+
+model Invoice {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNo   String   @unique
+  invoicePath String
+  invoiceUrl  String
+  Order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String   @unique @db.ObjectId
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+
+  @@map("INVOICES")
+}
+
+// model Checkout {
+//   id       String @id @default(auto()) @map("_id") @db.ObjectId
+//   quantity Int    @default(1)
+//   amount   Float
+
+//   address    Address @relation(fields: [addressId], references: [id])
+//   addressId  String  @db.ObjectId
+//   customer   User    @relation(fields: [customerId], references: [id])
+//   customerId String  @db.ObjectId
+//   cart       Cart    @relation(fields: [cartId], references: [id])
+//   cartId     String  @db.ObjectId
+
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@map("CHECKOUT")
+// }
+
+model Wallet {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  point  Int    @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("WALLET")
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  body      String
+  image     String?
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?  @db.ObjectId
+  isRead    Boolean  @default(false)
+  status    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("NOTIFICATION")
+}
+
+model Commission {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  amount Float
+  user   User   @relation("manfacturer commission", fields: [userId], references: [id])
+  userId String @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("COMMISSION")
+}
+
+model CommissionDistributor {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  amount Float
+  user   User   @relation("distributor commission", fields: [userId], references: [id])
+  userId String @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("COMMISSION_DISTRIBUTOR")
+}
+
+model Support {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  message   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("SUPPORTS")
+}
+
+model Color {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  hexCode   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("COLORS")
+}
+
+model Size {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("SIZES")
+}
+
+model Pincode {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  pincode    Int?
+  postOffice String?
+  district   String?
+  stateName  String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@map("PINCODE")
+}
+
+model Banner {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  owner         User     @relation("banner", fields: [ownerId], references: [id])
+  ownerId       String   @db.ObjectId
+  bannerPath    String
+  bannerUrl     String
+  displayStatus Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@map("BANNERS")
+}
