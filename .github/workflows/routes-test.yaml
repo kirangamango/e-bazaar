@@ -1,0 +1,16 @@
+name: routes test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    - main
+  workflow_dispatch:
+
+jobs:
+  check-routes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Run tests"
+        run: "npm run test"
