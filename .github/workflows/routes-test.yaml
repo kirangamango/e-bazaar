@@ -18,6 +18,8 @@ jobs:
 
       - name: "Install dependencies"
         run: npm i
+          with: 
+            node-version: "20"
 
       - name: "Run tests"
         run: npm run test
